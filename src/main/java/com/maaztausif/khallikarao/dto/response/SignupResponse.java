@@ -5,9 +5,17 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
+
 public class SignupResponse {
-    private long id;
-    private String email;
-    private String fullName;
-    private String password;
+    private boolean status;
+    private String message;
+    private UserData user;
+
+    @Data
+    @AllArgsConstructor
+    public static class UserData {
+        private long id;
+        private String email;
+        private String fullName;
+    }
 }

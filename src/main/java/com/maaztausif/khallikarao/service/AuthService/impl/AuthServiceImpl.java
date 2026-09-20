@@ -9,6 +9,8 @@ import com.maaztausif.khallikarao.repository.AuthRepo;
 import com.maaztausif.khallikarao.service.AuthService.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 @Service
@@ -16,6 +18,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     public AuthRepo repo;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -29,25 +34,35 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public SignupResponse registerUser(SignupRequest request) {
+
+        // Getting existing User
+        Optional<User> existingUser = repo.findByEmail(request.getEmailAddress());
+//                .orElseThrow(()-> new RuntimeException("user not found"));
+        if (existingUser.isPresent()) {
+            return new SignupResponse(
+                    false,
+                    "email is already registered",
+                    null
+            );
+        }
+
+// Saving New User
         User user = new User();
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmailAddress());
-//        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setPassword(request.getPassword());
-
-        Optional<User> existingUser = repo.findByEmail(request.getEmailAddress())
-//                .orElseThrow(()-> new RuntimeException("user not found"));
-
-        if (existingUser.isPresent()) {
-            throw new RuntimeException("Email already registered");
-        }
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         User saved = repo.save(user);
 
         return new SignupResponse(
-                saved.getId(),
-                saved.getEmail(),
-                saved.getFullName(),
-                saved.getPassword()
+                true,
+                "Registration Successful",
+                new SignupResponse.UserData(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName()
+                )
         );
+
+
     }
 }

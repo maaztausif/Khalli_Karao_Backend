@@ -24,12 +24,26 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        System.out.println("testet----=-=-=-=--=");
-        System.out.println(request.getEmail());
-        User user = repo.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
-        return  null;
+        Optional<User> existingUser = repo.findByEmail(request.getEmail());
+        if(existingUser.isPresent()){
+            User user = existingUser.get();
+          return new LoginResponse(
+                  true,
+                  "User is present",
+                  new LoginResponse.UserData(
+                          user.getId(),
+                          user.getEmail(),
+                          user.getFullName(),
+                          ""
+                  )
+          );
+        }
+        return new LoginResponse(
+                false,
+                "User Not Found",
+                null
+        );
+
     }
 
     @Override

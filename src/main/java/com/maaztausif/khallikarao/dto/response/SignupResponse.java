@@ -9,6 +9,7 @@ import lombok.Data;
 public class SignupResponse {
     private boolean status;
     private String message;
+    private Boolean otpVerified;
     private UserData user;
 
     @Data

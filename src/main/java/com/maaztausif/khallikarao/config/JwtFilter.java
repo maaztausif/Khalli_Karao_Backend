@@ -1,56 +1,90 @@
 package com.maaztausif.khallikarao.config;
 
+import com.maaztausif.khallikarao.repository.AuthRepo;
+import com.maaztausif.khallikarao.config.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-public class JwtFilter {
-    // JWT will be added later.
+import java.util.List;
+
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtService jwtService;
+    private final AuthRepo repo;
+
+    public JwtFilter(JwtService jwtService, AuthRepo repo) {
+        this.jwtService = jwtService;
+        this.repo = repo;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return "/api/auth/login".equals(path)
+                || "/api/auth/signup".equals(path);
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
+
+        String header = request.getHeader("Authorization");
+
+        if (header == null || !header.startsWith("Bearer ")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        long userId;
+
+        try {
+            userId = jwtService.extractUserId(header.substring(7));
+        } catch (JwtException | IllegalArgumentException exception) {
+            SecurityContextHolder.clearContext();
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid or expired token"
+            );
+            return;
+        }
+
+        var existingUser = repo.findById(userId);
+
+        if (existingUser.isEmpty()) {
+            SecurityContextHolder.clearContext();
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid token"
+            );
+            return;
+        }
+
+        var authentication = new UsernamePasswordAuthenticationToken(
+                Long.toString(userId),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+
+        authentication.setDetails(
+                new WebAuthenticationDetailsSource().buildDetails(request)
+        );
+
+        var context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+
+        chain.doFilter(request, response);
+    }
 }
-//@Component
-//public class JwtFilter extends OncePerRequestFilter {
-//
-//    @Autowired
-//    private JwtService service;
-//
-//    @Autowired
-//    private ApplicationContext context;
-//
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-//        String authHeader = request.getHeader("Authorization");
-//        String token = null;
-//        String userName = null;
-//
-//        if(authHeader !=null && authHeader.startsWith("Bearer ")){
-//            token = authHeader.substring(7);
-//            userName = service.extractUserName(token);
-//
-//            System.out.println("Auth token = " + token);
-//            System.out.println("userName = " + userName);
-//        }
-//
-//        if(userName != null && SecurityContextHolder.getContext().getAuthentication() == null){
-//            UserDetails userDetails = context.getBean(MyUserService.class).loadUserByUsername(userName);
-//
-//            if(service.valicateToken(token,userDetails)){
-//                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
-//                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                SecurityContextHolder.getContext().setAuthentication(authToken);
-//            }
-//        }
-//
-//        filterChain.doFilter(request,response);
-//    }
-//}
-//

@@ -1,5 +1,6 @@
 package com.maaztausif.khallikarao.service.AuthService.impl;
 
+import com.maaztausif.khallikarao.config.JwtService;
 import com.maaztausif.khallikarao.dto.request.LoginRequest;
 import com.maaztausif.khallikarao.dto.request.SignupRequest;
 import com.maaztausif.khallikarao.dto.response.LoginResponse;
@@ -17,6 +18,9 @@ import java.util.Optional;
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
+    private JwtService jwtService;
+
+    @Autowired
     public AuthRepo repo;
 
     @Autowired
@@ -25,25 +29,38 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         Optional<User> existingUser = repo.findByEmail(request.getEmail());
-        if(existingUser.isPresent()){
-            User user = existingUser.get();
-          return new LoginResponse(
-                  true,
-                  "User is present",
-                  new LoginResponse.UserData(
-                          user.getId(),
-                          user.getEmail(),
-                          user.getFullName(),
-                          ""
-                  )
-          );
-        }
-        return new LoginResponse(
-                false,
-                "User Not Found",
-                null
-        );
 
+        if(request.getPassword() == null || request.getPassword() == null ){
+            return new LoginResponse(false,"Email and password are required",null);
+        }
+        if (existingUser.isEmpty()) {
+            return new LoginResponse(
+                    false, "Invalid email or password", null
+            );
+        }
+
+        User user = existingUser.get();
+
+        if(!passwordEncoder.matches(
+                request.getPassword(), user.getPassword()
+        )){
+
+            return new LoginResponse(
+                    false, "Invalid email or password", null
+            );
+        }
+        String token = jwtService.generateToken(user.getId());
+
+        return new LoginResponse(
+                true,
+                "User is present",
+                new LoginResponse.UserData(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        token
+                )
+        );
     }
 
     @Override
@@ -70,6 +87,7 @@ public class AuthServiceImpl implements AuthService {
         return new SignupResponse(
                 true,
                 "Registration Successful",
+                false,
                 new SignupResponse.UserData(
                         user.getId(),
                         user.getEmail(),

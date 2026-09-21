@@ -1,5 +1,6 @@
 package com.maaztausif.khallikarao.service.AuthService.impl;
 
+import com.maaztausif.khallikarao.config.EmailOtpService;
 import com.maaztausif.khallikarao.config.JwtService;
 import com.maaztausif.khallikarao.dto.request.LoginRequest;
 import com.maaztausif.khallikarao.dto.request.SignupRequest;
@@ -16,6 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    @Autowired
+    private EmailOtpService emailOtpService;
 
     @Autowired
     private JwtService jwtService;
@@ -73,6 +77,7 @@ public class AuthServiceImpl implements AuthService {
             return new SignupResponse(
                     false,
                     "email is already registered",
+                    false,
                     null
             );
         }

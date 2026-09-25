@@ -8,9 +8,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Instant;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.Instant;
 import java.util.Locale;
 
 @Service
@@ -60,6 +61,46 @@ public class EmailOtpService {
     }
 
     @Transactional
+    public VerificationResult sendOtp(String email) {
+        if (email == null || email.isBlank()) {
+            return new VerificationResult(false, "Email is required");
+        }
+
+        var existingUser = repo.findByEmailForUpdate(email.trim());
+
+        if (existingUser.isEmpty()) {
+            return new VerificationResult(false, "User not found");
+        }
+
+        User user = existingUser.get();
+
+        if (user.isEmailVerified()) {
+            return new VerificationResult(
+                    false, "Email is already verified"
+            );
+        }
+
+        // Your OTP lasts 300 seconds; allow resending after 60 seconds.
+        if (user.getOtpExpiresAt() != null) {
+            Instant nextAllowedSend =
+                    user.getOtpExpiresAt().minusSeconds(240);
+
+            if (Instant.now().isBefore(nextAllowedSend)) {
+                return new VerificationResult(
+                        false,
+                        "Please wait 60 seconds before requesting another OTP"
+                );
+            }
+        }
+
+        sendSignupOtp(user);
+
+        return new VerificationResult(
+                true, "OTP sent. It expires in 5 minutes."
+        );
+    }
+
+    @Transactional
     public VerificationResult verify(String email, String otp) {
         if (email == null || email.isBlank()
                 || otp == null || !otp.matches("[0-9]{6}")) {
@@ -68,26 +109,33 @@ public class EmailOtpService {
             );
         }
 
-        var existingUser = repo.findByEmailForUpdate(email);
+        var existingUser = repo.findByEmailForUpdate(email.trim());
 
         if (existingUser.isEmpty()) {
-            return new VerificationResult(false, "Invalid verification details");
+            return new VerificationResult(
+                    false, "Invalid verification details"
+            );
         }
 
         User user = existingUser.get();
 
         if (user.isEmailVerified()) {
-            return new VerificationResult(false, "Email is already verified");
+            return new VerificationResult(
+                    false, "Email is already verified"
+            );
         }
 
-        if (user.getOtpHash() == null || user.getOtpExpiresAt() == null
+        if (user.getOtpHash() == null
+                || user.getOtpExpiresAt() == null
                 || !Instant.now().isBefore(user.getOtpExpiresAt())) {
-            return new VerificationResult(false, "OTP expired");
+            return new VerificationResult(
+                    false, "OTP expired. Please request a new code."
+            );
         }
 
         if (user.getOtpAttempts() >= 5) {
             return new VerificationResult(
-                    false, "Too many incorrect attempts"
+                    false, "Too many incorrect attempts. Request a new code."
             );
         }
 
@@ -104,7 +152,9 @@ public class EmailOtpService {
         user.setOtpAttempts(0);
         repo.save(user);
 
-        return new VerificationResult(true, "Email verified successfully");
+        return new VerificationResult(
+                true, "Email verified successfully"
+        );
     }
 
     public record VerificationResult(boolean status, String message) {

@@ -10,6 +10,7 @@ public class LoginResponse {
 
     private boolean status;
     private String message;
+    private Boolean otpVerified;
     private UserData userData;
 
     @Data

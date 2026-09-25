@@ -34,7 +34,9 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/signup",
-                                "/api/auth/login"
+                                "/api/auth/login",
+                                "/api/auth/send-otp",
+                                "/api/auth/verify-email"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors

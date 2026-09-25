@@ -35,22 +35,27 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> existingUser = repo.findByEmail(request.getEmail());
 
         if(request.getPassword() == null || request.getPassword() == null ){
-            return new LoginResponse(false,"Email and password are required",null);
+            return new LoginResponse(false,"Email and password are required",false,null);
         }
         if (existingUser.isEmpty()) {
             return new LoginResponse(
-                    false, "Invalid email or password", null
+                    false, "Invalid email or password", false,null
             );
         }
 
         User user = existingUser.get();
 
+        if (!user.isEmailVerified()){
+            return new LoginResponse(
+                    false, "Email is not verified!", false,null
+            );
+        }
         if(!passwordEncoder.matches(
                 request.getPassword(), user.getPassword()
         )){
 
             return new LoginResponse(
-                    false, "Invalid email or password", null
+                    false,"Invalid email or password" ,false, null
             );
         }
         String token = jwtService.generateToken(user.getId());
@@ -58,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResponse(
                 true,
                 "User is present",
+                user.isEmailVerified(),
                 new LoginResponse.UserData(
                         user.getId(),
                         user.getEmail(),
@@ -69,6 +75,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public SignupResponse registerUser(SignupRequest request) {
+
+        // Validation
+        if(request.getEmailAddress() == null
+                || request.getEmailAddress().isBlank()
+                || request.getFullName() == null
+                || request.getFullName().isBlank()
+                || request.getPassword() == null
+                || request.getPassword().isBlank()){
+            return new SignupResponse(false,"All fields are req",false,null);
+
+        }
 
         // Getting existing User
         Optional<User> existingUser = repo.findByEmail(request.getEmailAddress());
@@ -89,9 +106,12 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         User saved = repo.save(user);
 
+
+        emailOtpService.sendSignupOtp(saved);
+
         return new SignupResponse(
                 true,
-                "Registration Successful",
+                "Signup successful. Check your email for the OTP.",
                 false,
                 new SignupResponse.UserData(
                         user.getId(),

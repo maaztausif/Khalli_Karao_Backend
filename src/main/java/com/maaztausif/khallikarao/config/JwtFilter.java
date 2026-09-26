@@ -30,8 +30,13 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        return "/api/auth/login".equals(path)
-                || "/api/auth/signup".equals(path);
+        return "/api/auth/signup".equals(path)
+                || "/api/auth/login".equals(path)
+                || "/api/auth/send-otp".equals(path)
+                || "/api/auth/verify-email".equals(path)
+                || "/api/auth/forgot-password".equals(path)
+                || "/api/auth/reset-password".equals(path)
+                || "/api/auth/send-reset-otp".equals(path);
     }
 
     @Override
@@ -47,10 +52,10 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        long userId;
+        JwtService.TokenData tokenData;
 
         try {
-            userId = jwtService.extractUserId(header.substring(7));
+            tokenData = jwtService.readToken(header.substring(7));
         } catch (JwtException | IllegalArgumentException exception) {
             SecurityContextHolder.clearContext();
             response.sendError(
@@ -60,13 +65,17 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
+        long userId = tokenData.userId();
         var existingUser = repo.findById(userId);
 
-        if (existingUser.isEmpty()) {
+        if (existingUser.isEmpty()
+                || !existingUser.get().isEmailVerified()
+                || existingUser.get().getTokenVersion()
+                != tokenData.tokenVersion()) {
             SecurityContextHolder.clearContext();
             response.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid token"
+                    "Please log in again"
             );
             return;
         }

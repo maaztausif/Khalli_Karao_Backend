@@ -36,7 +36,10 @@ public class SecurityConfiguration {
                                 "/api/auth/signup",
                                 "/api/auth/login",
                                 "/api/auth/send-otp",
-                                "/api/auth/verify-email"
+                                "/api/auth/verify-email",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/send-reset-otp"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors

@@ -20,4 +20,11 @@ public class User {
     private String otpHash;
     private java.time.Instant otpExpiresAt;
     private int otpAttempts = 0;
+
+    //Forget Password
+    private String passwordResetOtpHash;
+    private java.time.Instant passwordResetOtpExpiresAt;
+    private java.time.Instant passwordResetOtpSentAt;
+    private int passwordResetOtpAttempts = 0;
+    private long tokenVersion = 0;
 }

@@ -58,8 +58,10 @@ public class AuthServiceImpl implements AuthService {
                     false,"Invalid email or password" ,false, null
             );
         }
-        String token = jwtService.generateToken(user.getId());
-
+        String token = jwtService.generateToken(
+                user.getId(),
+                user.getTokenVersion()
+        );
         return new LoginResponse(
                 true,
                 "User is present",

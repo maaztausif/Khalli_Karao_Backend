@@ -1,4 +1,4 @@
-package com.maaztausif.khallikarao.service.AuthService;
+package com.maaztausif.khallikarao.service.password;
 
 //package com.maaztausif.khallikarao.config;
 

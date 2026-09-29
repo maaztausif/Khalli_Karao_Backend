@@ -22,10 +22,3 @@ public class MessageCategory {
     private boolean active = true;
 
 }
-
-enum MessageStatus{
-    PENDING,
-    SENT,
-    FAILED
-
-}

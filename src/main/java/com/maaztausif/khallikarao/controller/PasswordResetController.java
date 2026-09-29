@@ -1,5 +1,5 @@
 package com.maaztausif.khallikarao.controller;
-import com.maaztausif.khallikarao.service.AuthService.PasswordResetService;
+import com.maaztausif.khallikarao.service.password.PasswordResetService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
